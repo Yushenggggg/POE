@@ -21,9 +21,8 @@ move_interval = 0.01  # 默認移動間隔
 angle_increment = 5   # 默認角度增量
 running = False
 
-# 繪製圓形
 def draw_circle():
-    global running, center_x, center_y, move_interval, angle_increment, radius
+    global running, center_x, center_y, move_interval, angle_increment
     while running:
         for angle in range(0, 360, angle_increment):
             if not running:
@@ -34,41 +33,19 @@ def draw_circle():
             pyautogui.moveTo(x, y, duration=0.01)
             time.sleep(move_interval)
 
-# 繪製菱形
-def draw_diamond():
-    global running, center_x, center_y, move_interval, radius
-    while running:
-        points = [
-            (center_x, center_y - radius),  # 上
-            (center_x + radius, center_y),  # 右
-            (center_x, center_y + radius),  # 下
-            (center_x - radius, center_y)   # 左
-        ]
-        for point in points:
-            if not running:
-                break
-            pyautogui.moveTo(point[0], point[1], duration=0.01)
-        # 减少绘制间隔，提升绘制速度
-        time.sleep(move_interval / 2)
-
-# 根據選擇的形狀進行繪製
-def select_shape(value):
-    global draw_function
-    if value == "Circle":
-        draw_function = draw_circle
-    elif value == "Diamond":
-        draw_function = draw_diamond
-
-draw_function = draw_circle  # 默認為畫圈
-
 def start_drawing():
     global running
     running = True
-    threading.Thread(target=draw_function, daemon=True).start()
+    threading.Thread(target=draw_circle, daemon=True).start()
 
 def stop_drawing():
     global running
     running = False
+
+def update_resolution(resolution):
+    global center_x, center_y
+    width, height = resolutions[resolution]
+    center_x, center_y = width // 2, height // 2
 
 def manual_update_resolution():
     global center_x, center_y
@@ -87,10 +64,6 @@ def update_angle_increment(value):
     global angle_increment
     angle_increment = int(value)
 
-def update_radius(value):
-    global radius
-    radius = int(value)
-
 def listen_for_escape():
     while True:
         if keyboard.is_pressed('esc'):
@@ -106,7 +79,7 @@ def listen_for_alt_f12():
 # 創建主窗口
 root = tk.Tk()
 root.title("Mouse Circle Drawer")
-root.geometry("300x600+300+300")  # 調整窗口大小
+root.geometry("300x500+300+300")  # 設置窗口大小
 
 # 解析度輸入框和按鈕
 frame_resolution = tk.Frame(root)
@@ -125,6 +98,15 @@ height_entry.insert(0, "1080")  # 默認值
 manual_update_button = tk.Button(frame_resolution, text="更新解析度", command=manual_update_resolution)
 manual_update_button.grid(row=2, columnspan=2, pady=10)
 
+# 解析度選擇下拉菜單
+frame_resolution_option = tk.Frame(root)
+frame_resolution_option.pack(pady=10)
+
+tk.Label(frame_resolution_option, text="Select Resolution:", font=("Arial", 12)).pack(pady=5)
+resolution_var = tk.StringVar(value="1920x1080")
+resolution_menu = tk.OptionMenu(frame_resolution_option, resolution_var, *resolutions.keys(), command=update_resolution)
+resolution_menu.pack()
+
 # 移動速度滑塊
 frame_speed = tk.Frame(root)
 frame_speed.pack(pady=10)
@@ -142,24 +124,6 @@ tk.Label(frame_angle, text="移動角度:", font=("Arial", 12)).pack(pady=5)
 angle_slider = tk.Scale(frame_angle, from_=1, to_=10, orient=tk.HORIZONTAL, command=update_angle_increment)
 angle_slider.set(5)  # 默認值
 angle_slider.pack(pady=5)
-
-# 半徑滑塊
-frame_radius = tk.Frame(root)
-frame_radius.pack(pady=10)
-
-tk.Label(frame_radius, text="半徑:", font=("Arial", 12)).pack(pady=5)
-radius_slider = tk.Scale(frame_radius, from_=50, to_=500, orient=tk.HORIZONTAL, command=update_radius)
-radius_slider.set(200)  # 默認值
-radius_slider.pack(pady=5)
-
-# 形狀選擇
-frame_shape = tk.Frame(root)
-frame_shape.pack(pady=10)
-
-tk.Label(frame_shape, text="Select Shape:", font=("Arial", 12)).pack(pady=5)
-shape_var = tk.StringVar(value="Circle")
-shape_menu = tk.OptionMenu(frame_shape, shape_var, "Circle", "Diamond", command=select_shape)
-shape_menu.pack()
 
 # 創建啟動和停止按鈕
 frame_buttons = tk.Frame(root)
